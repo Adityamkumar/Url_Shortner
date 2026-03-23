@@ -3,6 +3,7 @@ import { UrlModel } from "../models/url.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import redisClient from "../utils/redisClient.js";
 
 export const generateShortId = asyncHandler(async (req, res) => {
   const originalUrl: string = req.body.originalUrl;
@@ -36,9 +37,18 @@ export const generateShortId = asyncHandler(async (req, res) => {
 });
 
 export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
-  const shortId = req.params.shortId;
+  const shortId = req.params.shortId as string;
   if (!shortId) {
     throw new ApiError(400, "ShortId is required");
+  }
+
+  const cachedUrl = await redisClient.get(shortId);
+
+  if (cachedUrl) {
+    console.log("✅ Cache Hit");
+
+    await UrlModel.updateOne({ shortId }, { $inc: { visitCount: 1 } });
+    return res.redirect(cachedUrl);
   }
 
   const urlDoc = await UrlModel.findOneAndUpdate(
@@ -56,6 +66,11 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
   if (!urlDoc) {
     throw new ApiError(404, "Url not found");
   }
+
+  //store in Redis for the next time
+  await redisClient.set(shortId, urlDoc.originalUrl, {
+    EX: 3600,
+  });
 
   res.redirect(urlDoc.originalUrl);
 });
