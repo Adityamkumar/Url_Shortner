@@ -1,17 +1,37 @@
+import { useState } from 'react';
 import Navbar from '../components/Navbar';
 import URLForm from '../components/URLForm';
 import ResultCard from '../components/ResultCard';
 import AnalyticsCard from '../components/AnalyticsCard';
+import HistorySidebar from '../components/HistorySidebar';
 import { Network } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useShortener } from '../hooks/useShortener';
 
 export default function Home() {
-  const { loading, error, result, originalUrl, visitCount, handleShorten } = useShortener();
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const { 
+    loading, 
+    error, 
+    result, 
+    originalUrl, 
+    visitCount, 
+    recentLinks, 
+    handleShorten 
+  } = useShortener();
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 relative pb-16">
-      <Navbar />
+    <div className="min-h-screen bg-slate-900 text-slate-50 relative pb-16 overflow-x-hidden">
+      <Navbar 
+        onHistoryToggle={() => setIsHistoryOpen(!isHistoryOpen)} 
+        historyCount={recentLinks.length} 
+      />
+      
+      <HistorySidebar 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        links={recentLinks} 
+      />
       
       {/* Background aesthetic blobs */}
       <div className="absolute top-0 inset-x-0 h-[500px] overflow-hidden pointer-events-none -pe-z">
@@ -55,3 +75,5 @@ export default function Home() {
     </div>
   );
 }
+
+
