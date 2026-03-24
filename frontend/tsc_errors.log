@@ -1,0 +1,4 @@
+hi i am npx
+src/main.tsx(3,8): error TS2882: Cannot find module or type declarations for side-effect import of './index.css'.
+src/services/api.ts(3,34): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/services/api.ts(29,36): error TS6133: 'shortId' is declared but its value is never read.
