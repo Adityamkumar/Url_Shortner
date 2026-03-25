@@ -16,19 +16,9 @@ export interface ShortenResponse {
     shortUrl: string;
   };
   message: string;
-  success: boolean;
 }
 
-export const shortenUrl = async (originalUrl: string): Promise<ShortenResponse> => {
-  const response = await apiClient.post<ShortenResponse>('/shortId', { originalUrl });
-  return response.data;
+export const shortenUrl = async (originalUrl: string) => {
+  return apiClient.post<ShortenResponse>('/shortId', { originalUrl });
 };
 
-export interface AnalyticsResponse {
-  visitCount: number;
-}
-
-export const getAnalytics = async (shortId: string): Promise<AnalyticsResponse> => {
-  const response = await apiClient.get<AnalyticsResponse>(`/analytics/${shortId}`);
-  return response.data;
-};

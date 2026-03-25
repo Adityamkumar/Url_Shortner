@@ -15,15 +15,63 @@ export const generateShortId = asyncHandler(async (req, res) => {
   } catch {
     throw new ApiError(400, "Invalid URL");
   }
+  const key = `Url:${originalUrl}`;
+  const cachedShortId = await redisClient.get(key);
+  console.log("cachedShortId is:", cachedShortId);
+  if (cachedShortId) {
+    const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${cachedShortId}`;
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { shortId: cachedShortId, shortUrl: shortUrl },
+          "Url shortened successfully",
+        ),
+      );
+  }
+
+  const existingUrl = await UrlModel.findOne({ originalUrl });
+
+  if (existingUrl) {
+    await redisClient.set(`Url: ${originalUrl}`, existingUrl.shortId);
+    await redisClient.set(`shortId:${existingUrl.shortId}`, originalUrl);
+    const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${existingUrl.shortId}`;
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { shortUrl: shortUrl, shortId: existingUrl.shortId },
+          "Url shortened successfully hello",
+        ),
+      );
+  }
 
   const shortId: string = nanoid(6);
 
-  const url = await UrlModel.create({
-    originalUrl: originalUrl,
-    shortId: shortId,
-  });
+  let urlDoc;
+  try {
+    urlDoc = await UrlModel.create({
+      originalUrl: originalUrl,
+      shortId: shortId,
+    });
+  } catch (error: any) {
+    if (error.code === 11000) {
+      urlDoc = await UrlModel.findOne({ originalUrl });
+    } else {
+      throw error;
+    }
+  }
+  if (!urlDoc) {
+    throw new ApiError(500, "Failed to create or fetch URL");
+  }
 
-  const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${shortId}`;
+  await redisClient.set(`Url: ${urlDoc.originalUrl}`, urlDoc.shortId);
+  await redisClient.set(`shortId:${urlDoc.shortId}`, urlDoc.originalUrl);
+
+  const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${urlDoc.shortId}`;
 
   res
     .status(201)

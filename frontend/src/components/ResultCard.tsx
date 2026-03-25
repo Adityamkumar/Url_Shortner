@@ -33,7 +33,7 @@ export default function ResultCard({ shortUrl, originalUrl }: ResultCardProps) {
               className="text-xl font-semibold text-blue-400 cursor-help"
               title={shortUrl}
             >
-              {shortUrl.replace(/^https?:\/\//, '')}
+              {shortUrl?.replace(/^https?:\/\//, '') || 'Link not available'}
             </span>
           </div>
         </div>
@@ -51,12 +51,16 @@ export default function ResultCard({ shortUrl, originalUrl }: ResultCardProps) {
 
           <button
             onClick={handleCopy}
-            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl transition-all active:scale-95 w-full md:w-auto justify-center font-medium cursor-pointer"
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all active:scale-95 w-full md:w-auto justify-center font-medium cursor-pointer border
+              ${copied 
+                ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+                : 'bg-slate-700 hover:bg-slate-600 text-white border-transparent'
+              }`}
           >
           {copied ? (
             <>
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
-              <span className="text-green-400">Copied!</span>
+              <CheckCircle2 className="w-5 h-5" />
+              <span>Copied!</span>
             </>
           ) : (
             <>

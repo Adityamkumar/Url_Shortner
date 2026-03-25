@@ -1,85 +1,103 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { shortenUrl, getAnalytics, ShortenResponse } from '../services/api';
+import {useState, useEffect} from 'react';
+import {shortenUrl, ShortenResponse} from '../services/api';
 import toast from 'react-hot-toast';
+import {handleError} from '../utils/errorHandler';
 
 export interface RecentLink {
-  shortId: string;
-  shortUrl: string;
-  originalUrl: string;
+    shortId: string;
+    shortUrl: string;
+    originalUrl: string;
 }
 
 const STORAGE_KEY = 'shortify_recent_links';
 
 export function useShortener() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ShortenResponse['data'] | null>(null);
-  const [originalUrl, setOriginalUrl] = useState<string>('');
-  const [visitCount, setVisitCount] = useState<number | null>(null);
-  const [recentLinks, setRecentLinks] = useState<RecentLink[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState < string | null > (null);
+    const [result, setResult] = useState < ShortenResponse['data'] | null > (null);
+    const [originalUrl, setOriginalUrl] = useState < string > ('');
+    const [recentLinks, setRecentLinks] = useState < RecentLink[] > ([]);
 
-  // Initialize from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setRecentLinks(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to parse recent links from localStorage', e);
-      }
-    }
-  }, []);
+    useEffect(() => {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const parsed: RecentLink[] = JSON.parse(stored);
+                const validLinks = parsed.filter(link => link.originalUrl ?. trim() && link.shortUrl ?. trim());
+                setRecentLinks(validLinks);
+            } catch (e) {
+                console.error('Failed to parse recent links from localStorage', e);
+            }
+        }
+    }, []);
 
-  const handleShorten = async (url: string) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setVisitCount(null);
-    setOriginalUrl(url);
+    const handleShorten = async (url : string) => {
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setOriginalUrl(url);
 
-    try {
-      const resp = await shortenUrl(url);
-      setResult(resp.data);
-      toast.success('URL shortened successfully!');
-      
-      // Update recent links
-      const newLink: RecentLink = {
-        shortId: resp.data.shortId,
-        shortUrl: resp.data.shortUrl,
-        originalUrl: url
-      };
+        try {
+            const res = await shortenUrl(url);
 
-      setRecentLinks(prev => {
-        // Filter out if it already exists (move to top)
-        const filtered = prev.filter(l => l.shortId !== newLink.shortId);
-        const updated = [newLink, ...filtered].slice(0, 20);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        return updated;
-      });
-      
-      const analytics = await getAnalytics(resp.data.shortId);
-      setVisitCount(analytics.visitCount);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Failed to shorten url. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+            // Accessing with the exact data.data pattern requested
+            const urlData = res.data.data;
 
-  return {
-    loading,
-    error,
-    result,
-    originalUrl,
-    visitCount,
-    recentLinks,
-    handleShorten
-  };
+            // Ensure data is valid before updating
+            if (! urlData || ! urlData.shortUrl || ! urlData.shortId) {
+                console.error("Invalid response structure:", res.data);
+                throw new Error("Invalid response from server");
+            }
+
+            setResult(urlData);
+
+            toast.success('URL shortened successfully!', {
+                style: {
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155'
+                },
+                iconTheme: {
+                    primary: '#3b82f6',
+                    secondary: '#1e293b'
+                }
+            });
+
+            // Update recent links with deduplication
+            setRecentLinks(prev => {
+                const exists = prev.some(link => link.originalUrl ?. toLowerCase() === url.toLowerCase());
+
+                if (exists) {
+                    return prev;
+                }
+
+                const newLink: RecentLink = {
+                    shortId: urlData.shortId,
+                    shortUrl: urlData.shortUrl,
+                    originalUrl: url
+                };
+
+                const updated = [
+                    newLink,
+                    ...prev
+                ].slice(0, 20);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                return updated;
+            });
+        } catch (err : unknown) {
+            const message = handleError(err);
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return {
+        loading,
+        error,
+        result,
+        originalUrl,
+        recentLinks,
+        handleShorten
+    };
 }

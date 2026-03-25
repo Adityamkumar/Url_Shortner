@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Navbar from '../components/Navbar';
 import URLForm from '../components/URLForm';
 import ResultCard from '../components/ResultCard';
-import AnalyticsCard from '../components/AnalyticsCard';
 import HistorySidebar from '../components/HistorySidebar';
 import { Network } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,7 +14,6 @@ export default function Home() {
     error, 
     result, 
     originalUrl, 
-    visitCount, 
     recentLinks, 
     handleShorten 
   } = useShortener();
@@ -49,11 +47,7 @@ export default function Home() {
         <div className="w-full max-w-2xl mt-4 space-y-4">
           {result && (
             <>
-              <ResultCard shortUrl={result.shortUrl} originalUrl={originalUrl} />
-              
-              {visitCount !== null && (
-                <AnalyticsCard visitCount={visitCount} />
-              )}
+             <ResultCard shortUrl={result.shortUrl} originalUrl={originalUrl} />
             </>
           )}
 
