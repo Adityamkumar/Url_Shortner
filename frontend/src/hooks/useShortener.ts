@@ -7,6 +7,8 @@ export interface RecentLink {
     shortId: string;
     shortUrl: string;
     originalUrl: string;
+    isCustom: boolean;
+    visitCount: number;
 }
 
 const STORAGE_KEY = 'shortify_recent_links';
@@ -16,6 +18,7 @@ export function useShortener() {
     const [error, setError] = useState < string | null > (null);
     const [result, setResult] = useState < ShortenResponse['data'] | null > (null);
     const [originalUrl, setOriginalUrl] = useState < string > ('');
+    const [alias, setAlias] = useState < string > ('');
     const [recentLinks, setRecentLinks] = useState < RecentLink[] > ([]);
 
     useEffect(() => {
@@ -23,7 +26,14 @@ export function useShortener() {
         if (stored) {
             try {
                 const parsed: RecentLink[] = JSON.parse(stored);
-                const validLinks = parsed.filter(link => link.originalUrl ?. trim() && link.shortUrl ?. trim());
+                // Ensure isCustom exists, defaulting to false (AUTO) if missing
+                const validLinks = parsed
+                    .filter(link => link.originalUrl?.trim() && link.shortUrl?.trim())
+                    .map(link => ({
+                        ...link,
+                        isCustom: link.isCustom ?? false,
+                        visitCount: link.visitCount ?? 0
+                    }));
                 setRecentLinks(validLinks);
             } catch (e) {
                 console.error('Failed to parse recent links from localStorage', e);
@@ -31,27 +41,25 @@ export function useShortener() {
         }
     }, []);
 
-    const handleShorten = async (url : string) => {
+    const handleShorten = async (url : string, customAlias?: string) => {
         setLoading(true);
         setError(null);
         setResult(null);
         setOriginalUrl(url);
 
         try {
-            const res = await shortenUrl(url);
-
-            // Accessing with the exact data.data pattern requested
+            const res = await shortenUrl(url, customAlias);
             const urlData = res.data.data;
-
-            // Ensure data is valid before updating
+            console.log(urlData)
             if (! urlData || ! urlData.shortUrl || ! urlData.shortId) {
                 console.error("Invalid response structure:", res.data);
                 throw new Error("Invalid response from server");
             }
 
             setResult(urlData);
+            setAlias('');  
 
-            toast.success('URL shortened successfully!', {
+            toast.success('Short URL created successfully', {
                 style: {
                     background: '#1e293b',
                     color: '#f8fafc',
@@ -63,26 +71,35 @@ export function useShortener() {
                 }
             });
 
-            // Update recent links with deduplication
             setRecentLinks(prev => {
-                const exists = prev.some(link => link.originalUrl ?. toLowerCase() === url.toLowerCase());
-
-                if (exists) {
-                    return prev;
-                }
-
                 const newLink: RecentLink = {
                     shortId: urlData.shortId,
                     shortUrl: urlData.shortUrl,
-                    originalUrl: url
+                    originalUrl: url,
+                    isCustom: urlData.isCustom,
+                    visitCount: urlData.visitCount ?? 0
                 };
 
-                const updated = [
-                    newLink,
-                    ...prev
-                ].slice(0, 20);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-                return updated;
+                let updated: RecentLink[];
+
+                if (urlData.isCustom) {
+                    updated = [newLink, ...prev];
+                } else {
+                    const existingAutoIndex = prev.findIndex(link => 
+                        link.originalUrl.toLowerCase() === url.toLowerCase() && !link.isCustom
+                    );
+
+                    if (existingAutoIndex !== -1) {
+                        const filtered = prev.filter((_, i) => i !== existingAutoIndex);
+                        updated = [newLink, ...filtered];
+                    } else {
+                        updated = [newLink, ...prev];
+                    }
+                }
+
+                const sliced = updated.slice(0, 10);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(sliced));
+                return sliced;
             });
         } catch (err : unknown) {
             const message = handleError(err);
@@ -92,12 +109,33 @@ export function useShortener() {
         }
     };
 
+    const clearHistory = () => {
+        setRecentLinks([]);
+        localStorage.removeItem(STORAGE_KEY);
+        toast.success('History cleared successfully');
+    };
+
+    const incrementVisitCount = (shortId: string) => {
+        setRecentLinks(prev => {
+            const updated = prev.map(link => 
+                link.shortId === shortId 
+                    ? { ...link, visitCount: (link.visitCount || 0) + 1 } 
+                    : link
+            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     return {
         loading,
         error,
         result,
         originalUrl,
+        alias,
         recentLinks,
-        handleShorten
+        handleShorten,
+        clearHistory,
+        incrementVisitCount
     };
 }

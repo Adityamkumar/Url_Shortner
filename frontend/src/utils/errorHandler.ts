@@ -2,19 +2,11 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 export const getErrorMessage = (status?: number, responseMessage?: string): string => {
-  if (responseMessage?.trim()) return responseMessage.trim();
-  switch (status) {
-    case 400:
-      return 'Invalid URL. Please enter a valid Url.';
-    case 404:
-      return 'Url not found.';
-    case 429:
-      return 'Too many requests. Please try again later.';
-    case 500:
-      return 'Something went wrong. Please try again.';
-  }
-
-  return 'Something went wrong. Please try again later.';
+  if (status === 409) return 'Alias already taken, try another one';
+  if (status === 429) return 'Too many requests, try again later';
+  if (status === 400 && responseMessage) return responseMessage;
+  
+  return 'Something went wrong';
 };
 
 export const handleError = (error: unknown): string => {

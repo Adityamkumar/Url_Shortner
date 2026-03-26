@@ -14,11 +14,16 @@ export interface ShortenResponse {
   data: {
     shortId: string;
     shortUrl: string;
+    isCustom: boolean;
+    visitCount: number;
   };
   message: string;
 }
 
-export const shortenUrl = async (originalUrl: string) => {
-  return apiClient.post<ShortenResponse>('/shortId', { originalUrl });
+export const shortenUrl = async (originalUrl: string, customAlias?: string) => {
+  return apiClient.post<ShortenResponse>('/shortId', { 
+    originalUrl, 
+    ...(customAlias ? { customAlias } : {}) 
+  });
 };
 

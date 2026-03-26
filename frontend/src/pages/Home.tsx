@@ -15,7 +15,9 @@ export default function Home() {
     result, 
     originalUrl, 
     recentLinks, 
-    handleShorten 
+    handleShorten,
+    clearHistory,
+    incrementVisitCount
   } = useShortener();
 
   return (
@@ -29,6 +31,8 @@ export default function Home() {
         isOpen={isHistoryOpen} 
         onClose={() => setIsHistoryOpen(false)} 
         links={recentLinks} 
+        onClearHistory={clearHistory}
+        onLinkClick={incrementVisitCount}
       />
       
       {/* Background aesthetic blobs */}
@@ -47,7 +51,14 @@ export default function Home() {
         <div className="w-full max-w-2xl mt-4 space-y-4">
           {result && (
             <>
-             <ResultCard shortUrl={result.shortUrl} originalUrl={originalUrl} />
+              <ResultCard 
+                shortId={result.shortId}
+                shortUrl={result.shortUrl} 
+                originalUrl={originalUrl} 
+                isCustom={result.isCustom}
+                visitCount={recentLinks.find(l => l.shortId === result.shortId)?.visitCount || result.visitCount || 0}
+                onVisit={incrementVisitCount}
+              />
             </>
           )}
 

@@ -1,87 +1,38 @@
-import { nanoid } from "nanoid";
 import { UrlModel } from "../models/url.model.js";
+import { createShortUrlService } from "../services/url.service.js";
 import { ApiError } from "../utils/ApiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import redisClient from "../utils/redisClient.js";
+import type {
+  CreateShortUrlBody,
+  ShortUrlResponse,
+} from "../utils/types/url.type.js";
+
+const TTL = Number(process.env.REDIS_TTL || 3600);
 
 export const generateShortId = asyncHandler(async (req, res) => {
-  const originalUrl: string = req.body.originalUrl;
+  const { originalUrl, customAlias }: CreateShortUrlBody = req.body;
+
+  const payload = customAlias ? { originalUrl, customAlias } : { originalUrl };
   if (!originalUrl?.trim()) {
     throw new ApiError(400, "Url is required");
   }
-  try {
-    new URL(originalUrl);
-  } catch {
-    throw new ApiError(400, "Invalid URL");
-  }
-  const key = `Url:${originalUrl}`;
-  const cachedShortId = await redisClient.get(key);
-  console.log("cachedShortId is:", cachedShortId);
-  if (cachedShortId) {
-    const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${cachedShortId}`;
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { shortId: cachedShortId, shortUrl: shortUrl },
-          "Url shortened successfully",
-        ),
-      );
-  }
+  const { shortId, isNew, isCustom, visitCount } =
+    await createShortUrlService(payload);
 
-  const existingUrl = await UrlModel.findOne({ originalUrl });
+  const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${shortId}`;
 
-  if (existingUrl) {
-    await redisClient.set(`Url: ${originalUrl}`, existingUrl.shortId);
-    await redisClient.set(`shortId:${existingUrl.shortId}`, originalUrl);
-    const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${existingUrl.shortId}`;
+  const responseData: ShortUrlResponse = {
+    shortId,
+    shortUrl,
+    isCustom,
+    visitCount,
+  };
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { shortUrl: shortUrl, shortId: existingUrl.shortId },
-          "Url shortened successfully hello",
-        ),
-      );
-  }
-
-  const shortId: string = nanoid(6);
-
-  let urlDoc;
-  try {
-    urlDoc = await UrlModel.create({
-      originalUrl: originalUrl,
-      shortId: shortId,
-    });
-  } catch (error: any) {
-    if (error.code === 11000) {
-      urlDoc = await UrlModel.findOne({ originalUrl });
-    } else {
-      throw error;
-    }
-  }
-  if (!urlDoc) {
-    throw new ApiError(500, "Failed to create or fetch URL");
-  }
-
-  await redisClient.set(`Url: ${urlDoc.originalUrl}`, urlDoc.shortId);
-  await redisClient.set(`shortId:${urlDoc.shortId}`, urlDoc.originalUrl);
-
-  const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${urlDoc.shortId}`;
-
-  res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        { shortId: shortId, shortUrl: shortUrl },
-        "Url Shortened Successfully",
-      ),
-    );
+  return res
+    .status(isNew ? 201 : 200)
+    .json(new ApiResponse(isNew ? 201 : 200, responseData));
 });
 
 export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
@@ -90,10 +41,17 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
     throw new ApiError(400, "ShortId is required");
   }
 
-  const cachedUrl = await redisClient.get(shortId);
+  const cacheKey = `shortId:${shortId}`;
+  const cachedUrl = await redisClient.get(`shortId:${cacheKey}`);
 
   if (cachedUrl) {
     console.log("✅ Cache Hit");
+
+    const exists = await UrlModel.exists({ shortId });
+    if (!exists) {
+      await redisClient.del(shortId);
+      throw new ApiError(400, "Url not found");
+    }
 
     await UrlModel.updateOne({ shortId }, { $inc: { visitCount: 1 } });
     return res.redirect(cachedUrl);
@@ -116,8 +74,8 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
   }
 
   //store in Redis for the next time
-  await redisClient.set(shortId, urlDoc.originalUrl, {
-    EX: 3600,
+  await redisClient.set(`shortId:${shortId}`, urlDoc.originalUrl, {
+    EX: TTL,
   });
 
   res.redirect(urlDoc.originalUrl);

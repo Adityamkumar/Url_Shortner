@@ -1,0 +1,1 @@
+export const RESERVED_ALIASES = ["admin", "login", "api"];
