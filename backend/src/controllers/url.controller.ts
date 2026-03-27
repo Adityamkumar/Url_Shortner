@@ -10,7 +10,6 @@ import type {
 } from "../utils/types/url.type.js";
 
 const TTL = Number(process.env.REDIS_TTL || 3600);
-
 export const generateShortId = asyncHandler(async (req, res) => {
   const { originalUrl, customAlias }: CreateShortUrlBody = req.body;
 

@@ -8,11 +8,11 @@ import type {
   CreatShortUrlResult,
 } from "../utils/types/url.type.js";
 
+ const TTL = Number(process.env.REDIS_TTL || 3600);
 export const createShortUrlService = async ({
   originalUrl,
   customAlias,
 }: CreateShortUrlBody): Promise<CreatShortUrlResult> => {
-  const TTL = Number(process.env.REDIS_TTL || 3600);
 
   await validateAlias(customAlias);
 
