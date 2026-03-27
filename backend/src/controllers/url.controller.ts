@@ -66,9 +66,8 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
   }
 
   //store in Redis for the next time
-  await redisClient.set(`shortId:${shortId}`, urlDoc.originalUrl, {
-    px: TTL * 1000,
-  });
+  await redisClient.set(`shortId:${shortId}`, urlDoc.originalUrl);
+  await redisClient.expire(`shortId:${shortId}`, TTL)
 
   res.redirect(urlDoc.originalUrl);
 });
