@@ -18,7 +18,6 @@ export function useShortener() {
     const [error, setError] = useState < string | null > (null);
     const [result, setResult] = useState < ShortenResponse['data'] | null > (null);
     const [originalUrl, setOriginalUrl] = useState < string > ('');
-    const [alias, setAlias] = useState < string > ('');
     const [recentLinks, setRecentLinks] = useState < RecentLink[] > ([]);
 
     useEffect(() => {
@@ -58,9 +57,6 @@ export function useShortener() {
 
             setResult(urlData);
             
-            // Clear result after 30 seconds to avoid stale data UI if user comes back later? 
-            // Actually, keep it for now.
-
             setRecentLinks(prev => {
                 const newLink: RecentLink = {
                     shortId: urlData.shortId,
@@ -70,7 +66,6 @@ export function useShortener() {
                     visitCount: urlData.visitCount ?? 0
                 };
 
-                // Strict de-duplication by shortId
                 const filtered = prev.filter(l => l.shortId !== newLink.shortId);
                 const updated = [newLink, ...filtered];
                 
@@ -117,7 +112,6 @@ export function useShortener() {
         error,
         result,
         originalUrl,
-        alias,
         recentLinks,
         handleShorten,
         clearHistory,
