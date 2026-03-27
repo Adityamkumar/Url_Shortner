@@ -31,9 +31,9 @@ export const createShortUrlService = async ({
 
     const existing = await UrlModel.findOne({ originalUrl, isCustom: false });
     if (existing) {
-      await redisClient.set(cachedKey, existing.shortId, { ex: TTL });
+      await redisClient.set(cachedKey, existing.shortId, { px: TTL * 1000 });
       await redisClient.set(`shortId:${existing.shortId}`, originalUrl, {
-        ex: TTL,
+        px: TTL * 1000,
       });
       return {
         shortId: existing.shortId,
