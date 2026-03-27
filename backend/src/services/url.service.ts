@@ -64,7 +64,7 @@ export const createShortUrlService = async ({
     throw new ApiError(500, "Failed to create or fetch URL");
   }
 
-  await redisClient.set(`Url: ${urlDoc.originalUrl}`, urlDoc.shortId);
+  await redisClient.set(`Url:${urlDoc.originalUrl}`, urlDoc.shortId);
   await redisClient.set(`shortId:${urlDoc.shortId}`, urlDoc.originalUrl);
   await redisClient.expire(`Url:${urlDoc.originalUrl}`, TTL)
   await redisClient.expire(`shortId:${urlDoc.shortId}`, TTL)
