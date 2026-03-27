@@ -43,6 +43,7 @@ export default function Home() {
 
       <main className="pt-32 px-6 md:px-12 max-w-5xl mx-auto relative z-10 flex flex-col items-center">
         <URLForm 
+          key={result?.shortId || 'new'}
           onShorten={handleShorten} 
           isLoading={loading} 
           error={error} 

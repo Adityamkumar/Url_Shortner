@@ -23,7 +23,7 @@ export const createShortUrlService = async ({
   }
 
   if (!customAlias) {
-    const cachedKey = `Url:${originalUrl}`;
+    const cachedKey = `Url:Auto:${originalUrl}`;
     const cachedShortId = await redisClient.get<string>(cachedKey);
     if (cachedShortId) {
       const existing = await UrlModel.findOne({ shortId: cachedShortId });
@@ -61,7 +61,8 @@ export const createShortUrlService = async ({
     });
   } catch (error: any) {
     if (error.code === 11000) {
-      urlDoc = await UrlModel.findOne({ originalUrl, isCustom: false });
+      // If it's a duplication, find existing regardless of isCustom for final fallback
+      urlDoc = await UrlModel.findOne({ originalUrl, shortId: shortId });
     } else {
       throw error;
     }
@@ -70,9 +71,14 @@ export const createShortUrlService = async ({
     throw new ApiError(500, "Failed to create or fetch URL");
   }
 
-  await redisClient.set(`Url:${urlDoc.originalUrl}`, urlDoc.shortId);
+  // Only cache the URL-to-ID mapping for AUTO-generated links
+  // Custom aliases should not be mapped back as the 'default' for a URL
+  if (!urlDoc.isCustom) {
+    await redisClient.set(`Url:Auto:${urlDoc.originalUrl}`, urlDoc.shortId);
+    await redisClient.expire(`Url:Auto:${urlDoc.originalUrl}`, TTL)
+  }
+  
   await redisClient.set(`shortId:${urlDoc.shortId}`, urlDoc.originalUrl);
-  await redisClient.expire(`Url:${urlDoc.originalUrl}`, TTL)
   await redisClient.expire(`shortId:${urlDoc.shortId}`, TTL)
   return {
     shortId: urlDoc.shortId,

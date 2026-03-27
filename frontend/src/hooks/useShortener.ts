@@ -57,19 +57,9 @@ export function useShortener() {
             }
 
             setResult(urlData);
-            setAlias('');  
-
-            toast.success('Short URL created successfully', {
-                style: {
-                    background: '#1e293b',
-                    color: '#f8fafc',
-                    border: '1px solid #334155'
-                },
-                iconTheme: {
-                    primary: '#3b82f6',
-                    secondary: '#1e293b'
-                }
-            });
+            
+            // Clear result after 30 seconds to avoid stale data UI if user comes back later? 
+            // Actually, keep it for now.
 
             setRecentLinks(prev => {
                 const newLink: RecentLink = {
@@ -80,26 +70,21 @@ export function useShortener() {
                     visitCount: urlData.visitCount ?? 0
                 };
 
-                let updated: RecentLink[];
-
-                if (urlData.isCustom) {
-                    updated = [newLink, ...prev];
-                } else {
-                    const existingAutoIndex = prev.findIndex(link => 
-                        link.originalUrl.toLowerCase() === url.toLowerCase() && !link.isCustom
-                    );
-
-                    if (existingAutoIndex !== -1) {
-                        const filtered = prev.filter((_, i) => i !== existingAutoIndex);
-                        updated = [newLink, ...filtered];
-                    } else {
-                        updated = [newLink, ...prev];
-                    }
-                }
-
+                // Strict de-duplication by shortId
+                const filtered = prev.filter(l => l.shortId !== newLink.shortId);
+                const updated = [newLink, ...filtered];
+                
                 const sliced = updated.slice(0, 10);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(sliced));
                 return sliced;
+            });
+
+            toast.success('Short URL ready!', {
+                style: {
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    border: '1px solid #334155'
+                }
             });
         } catch (err : unknown) {
             const message = handleError(err);
