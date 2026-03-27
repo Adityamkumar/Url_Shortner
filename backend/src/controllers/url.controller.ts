@@ -10,15 +10,17 @@ import type {
 } from "../utils/types/url.type.js";
 
 const TTL = Number(process.env.REDIS_TTL || 3600);
+
 export const generateShortId = asyncHandler(async (req, res) => {
   const { originalUrl, customAlias }: CreateShortUrlBody = req.body;
 
-  const payload = customAlias ? { originalUrl, customAlias } : { originalUrl };
   if (!originalUrl?.trim()) {
     throw new ApiError(400, "Url is required");
   }
-  const { shortId, isNew, isCustom, visitCount } =
-    await createShortUrlService(payload);
+
+  const payload = customAlias ? { originalUrl, customAlias } : { originalUrl };
+  
+  const { shortId, isNew, isCustom, visitCount } = await createShortUrlService(payload);
 
   const shortUrl = `${req.protocol}://${req.get("host")}/${shortId}`;
 
@@ -41,33 +43,59 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
   }
 
   const cacheKey = `shortId:${shortId}`;
-  const cachedUrl= await redisClient.get<string>(cacheKey);
+  const cachedUrl = await redisClient.get<string>(cacheKey);
 
   if (cachedUrl) {
     console.log("✅ Cache Hit");
-    await UrlModel.updateOne({ shortId }, { $inc: { visitCount: 1 } });
+
+    const urlDoc = await UrlModel.findOneAndUpdate(
+      { shortId },
+      { $inc: { visitCount: 1 } },
+      { new: true }
+    );
+
+    if (urlDoc) {
+      const cachedUrlKey = `Url:${urlDoc.originalUrl}`;
+      const cacheData = JSON.stringify({
+        shortId: urlDoc.shortId,
+        isNew: false,
+        isCustom: urlDoc.isCustom,
+        visitCount: urlDoc.visitCount
+      });
+      await redisClient.set(cachedUrlKey, cacheData);
+      await redisClient.expire(cachedUrlKey, TTL);
+    } else {
+      await redisClient.del(cacheKey);
+    }
+
     return res.redirect(cachedUrl);
   }
 
+  // Cache Miss or stale cache
   const urlDoc = await UrlModel.findOneAndUpdate(
     { shortId },
-    {
-      $inc: {
-        visitCount: 1,
-      },
-    },
-    {
-      new: true,
-    },
+    { $inc: { visitCount: 1 } },
+    { new: true }
   );
 
   if (!urlDoc) {
-    throw new ApiError(404, "Url not found");
+    throw new ApiError(404, "Short URL not found");
   }
 
-  //store in Redis for the next time
-  await redisClient.set(`shortId:${shortId}`, urlDoc.originalUrl);
-  await redisClient.expire(`shortId:${shortId}`, TTL)
+  // Store in Redis (Short ID -> Target URL)
+  await redisClient.set(cacheKey, urlDoc.originalUrl);
+  await redisClient.expire(cacheKey, TTL);
+
+  // Sync the Original URL analytics cache
+  const cachedUrlKey = `Url:${urlDoc.originalUrl}`;
+  const cacheData = JSON.stringify({
+    shortId: urlDoc.shortId,
+    isNew: false,
+    isCustom: urlDoc.isCustom,
+    visitCount: urlDoc.visitCount
+  });
+  await redisClient.set(cachedUrlKey, cacheData);
+  await redisClient.expire(cachedUrlKey, TTL);
 
   res.redirect(urlDoc.originalUrl);
 });
