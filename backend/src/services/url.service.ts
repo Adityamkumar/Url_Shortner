@@ -66,6 +66,8 @@ export const createShortUrlService = async ({
 
   await redisClient.set(`Url: ${urlDoc.originalUrl}`, urlDoc.shortId);
   await redisClient.set(`shortId:${urlDoc.shortId}`, urlDoc.originalUrl);
+  await redisClient.expire(`Url:${urlDoc.originalUrl}`, TTL)
+  await redisClient.expire(`shortId:${urlDoc.shortId}`, TTL)
   return {
     shortId: urlDoc.shortId,
     isNew: true,
