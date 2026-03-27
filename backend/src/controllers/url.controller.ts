@@ -37,16 +37,18 @@ export const generateShortId = asyncHandler(async (req, res) => {
 });
 
 export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
-  const shortId = req.params.shortId as string;
-  if (!shortId) {
-    throw new ApiError(400, "ShortId is required");
+  const { shortId } = req.params;
+
+  const systemFiles = ['favicon.ico', 'robots.txt', 'sitemap.xml', '.well-known', 'manifest.json'];
+  if (!shortId || systemFiles.some(file => shortId.includes(file))) {
+    throw new ApiError(400, "Not a short URL")
   }
 
   const cacheKey = `shortId:${shortId}`;
   const cachedUrl = await redisClient.get<string>(cacheKey);
 
   if (cachedUrl) {
-    console.log("✅ Cache Hit");
+    console.log(`🚀 Redirecting (Cache Hit): ${shortId}`);
 
     const urlDoc = await UrlModel.findOneAndUpdate(
       { shortId },
@@ -64,14 +66,14 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
       });
       await redisClient.set(cachedUrlKey, cacheData);
       await redisClient.expire(cachedUrlKey, TTL);
+      return res.redirect(cachedUrl);
     } else {
-      await redisClient.del(cacheKey);
+      await redisClient.del(cacheKey); // Stale cache
     }
-
-    return res.redirect(cachedUrl);
   }
 
-  // Cache Miss or stale cache
+  // Cache Miss or Staleness
+  console.log(`🔍 Redirection (DB Lookup): ${shortId}`);
   const urlDoc = await UrlModel.findOneAndUpdate(
     { shortId },
     { $inc: { visitCount: 1 } },
@@ -82,11 +84,10 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Short URL not found");
   }
 
-  // Store in Redis (Short ID -> Target URL)
+  // Populate both cache layers
   await redisClient.set(cacheKey, urlDoc.originalUrl);
   await redisClient.expire(cacheKey, TTL);
 
-  // Sync the Original URL analytics cache
   const cachedUrlKey = `Url:${urlDoc.originalUrl}`;
   const cacheData = JSON.stringify({
     shortId: urlDoc.shortId,
