@@ -24,16 +24,16 @@ export const createShortUrlService = async ({
 
   if (!customAlias) {
     const cachedKey = `Url:${originalUrl}`;
-    const cached = await redisClient.get(cachedKey);
+    const cached = await redisClient.get<string>(cachedKey);
     if (cached) {
       return { shortId: cached, isNew: false, isCustom: false, visitCount: 0 };
     }
 
     const existing = await UrlModel.findOne({ originalUrl, isCustom: false });
     if (existing) {
-      await redisClient.set(cachedKey, existing.shortId, { EX: TTL });
+      await redisClient.set(cachedKey, existing.shortId, { ex: TTL });
       await redisClient.set(`shortId:${existing.shortId}`, originalUrl, {
-        EX: TTL,
+        ex: TTL,
       });
       return {
         shortId: existing.shortId,

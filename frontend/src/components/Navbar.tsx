@@ -36,12 +36,6 @@ export default function Navbar({ onHistoryToggle, historyCount }: NavbarProps) {
           </div>
         </div>
         
-        {/* Right Side: Account actions */}
-        <div className="flex items-center gap-4">
-          <button className="text-sm font-medium text-slate-400 hover:text-white transition-colors duration-200 cursor-pointer">
-            Sign In
-          </button>
-        </div>
       </div>
     </nav>
   );

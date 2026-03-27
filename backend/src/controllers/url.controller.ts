@@ -21,7 +21,7 @@ export const generateShortId = asyncHandler(async (req, res) => {
   const { shortId, isNew, isCustom, visitCount } =
     await createShortUrlService(payload);
 
-  const shortUrl = `${req.protocol}://${req.get("host")}/api/v1/${shortId}`;
+  const shortUrl = `${req.protocol}://${req.get("host")}/${shortId}`;
 
   const responseData: ShortUrlResponse = {
     shortId,
@@ -42,17 +42,10 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
   }
 
   const cacheKey = `shortId:${shortId}`;
-  const cachedUrl = await redisClient.get(`shortId:${cacheKey}`);
+  const cachedUrl= await redisClient.get<string>(cacheKey);
 
   if (cachedUrl) {
     console.log("✅ Cache Hit");
-
-    const exists = await UrlModel.exists({ shortId });
-    if (!exists) {
-      await redisClient.del(shortId);
-      throw new ApiError(400, "Url not found");
-    }
-
     await UrlModel.updateOne({ shortId }, { $inc: { visitCount: 1 } });
     return res.redirect(cachedUrl);
   }
@@ -75,7 +68,7 @@ export const redirectToOriginalUrl = asyncHandler(async (req, res) => {
 
   //store in Redis for the next time
   await redisClient.set(`shortId:${shortId}`, urlDoc.originalUrl, {
-    EX: TTL,
+    ex: TTL,
   });
 
   res.redirect(urlDoc.originalUrl);

@@ -1,18 +1,13 @@
-import { createClient } from "redis";
-
-const redisClient = createClient({
-  url: "redis://127.0.0.1:6379",
+import { Redis } from "@upstash/redis";
+if (
+  !process.env.UPSTASH_REDIS_REST_URL ||
+  !process.env.UPSTASH_REDIS_REST_TOKEN
+) {
+  throw new Error("❌ Missing Upstash Redis ENV variables");
+}
+const redisClient = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
-
-redisClient.on("error", (err) => {
-  console.error("❌ Redis Error:", err);
-});
-
-export const connectRedis = async () => {
-  if (!redisClient.isOpen) {
-    await redisClient.connect();
-    console.log("✅ Redis connected");
-  }
-};
 
 export default redisClient;
