@@ -39,13 +39,21 @@ Shortify uses a multi-layered caching strategy. By offloading 99% of redirection
 
 ```mermaid
 graph TD
-    A[User Request] --> B{Redis Cache Lookup}
-    B -- Cache Hit ✅ --> C[Instant Redirect]
-    B -- Cache Miss ❌ --> D[MongoDB Persistence Query]
-    D --> E[Populate Cache for Next Hit]
-    E --> C
-    C --> F((Click Tracker))
-    F --> G[Async DB Analytics Sync]
+    A[User Link Request] --> B{Redis Cache Lookup}
+
+    %% Fast Path
+    B -- "⚡ Fast Path (Cache Hit)" --> C[Direct Redirect]
+    C -. "Fire & Forget" .-> D((Async Stats Sync))
+
+    %% Slow Path
+    B -- "🐢 Slow Path (Cache Miss)" --> E[(MongoDB Persistence)]
+    E --> F[Populate Redis Cache]
+    F --> C
+    
+    style B fill:#1e293b,stroke:#38bdf8,stroke-width:2px;
+    style C fill:#059669,stroke:#10b981,stroke-width:2px,color:#fff;
+    style E fill:#dc2626,stroke:#ef4444,stroke-width:2px,color:#fff;
+    style D fill:#9333ea,stroke:#a855f7,stroke-width:2px,color:#fff,stroke-dasharray: 5 5;
 ```
 
 ### Why Redis?
