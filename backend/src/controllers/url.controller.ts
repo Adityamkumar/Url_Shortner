@@ -9,6 +9,7 @@ import type {
   ShortUrlResponse,
 } from "../utils/types/url.type.js";
 
+const BASE_URL = "https://shortify-com.onrender.com";
 const TTL = Number(process.env.REDIS_TTL || 3600);
 export const generateShortId = asyncHandler(async (req, res) => {
   const { originalUrl, customAlias }: CreateShortUrlBody = req.body;
@@ -20,7 +21,7 @@ export const generateShortId = asyncHandler(async (req, res) => {
   const { shortId, isNew, isCustom, visitCount } =
     await createShortUrlService(payload);
 
-  const shortUrl = `${req.protocol}://${req.get("host")}/${shortId}`;
+  const shortUrl = `${BASE_URL}/${shortId}`;
 
   const responseData: ShortUrlResponse = {
     shortId,
