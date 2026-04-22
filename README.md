@@ -3,101 +3,123 @@
   
   <br />
 
+  [![Docker](https://img.shields.io/badge/Docker-Hub-2496ed?style=for-the-badge&logo=docker)](https://hub.docker.com/r/adityakumar91/url-shortner)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
-  [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev)
-  [![Tailwind](https://img.shields.io/badge/Tailwind-4.0-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
-  [![Redis](https://img.shields.io/badge/Redis-6.x-dc2626?style=for-the-badge&logo=redis)](https://redis.io)
+  [![Node.js](https://img.shields.io/badge/Node.js-24-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org)
+  [![Redis](https://img.shields.io/badge/Upstash_Redis-dc2626?style=for-the-badge&logo=redis)](https://upstash.com)
   [![MongoDB](https://img.shields.io/badge/MongoDB-7.x-059669?style=for-the-badge&logo=mongodb)](https://mongodb.com)
- 
 
-  <h3>Transform long, messy links into powerful, branded, and trackable short URLs.</h3>
+  <h3>🚀 Shortify: A High-Performance, Dockerized URL Shortener</h3>
   
   <p>
-    <a href="https://aditya-dev-portfolio-iota.vercel.app/"><b>✨ View My Portfolio</b></a> • 
-    <a href="https://github.com/Adityamkumar"><b>🔗 Github Profile</b></a> • 
-    <a href="#-installation--setup"><b>🚀 Get Started</b></a>
+    <b>Shortify</b> is a professional-grade URL shortening service built for speed, scalability, and elegance. Transform long, cluttered links into clean, trackable aliases with sub-millisecond redirection thanks to Upstash Redis.
+  </p>
+
+  <p>
+    <a href="https://aditya-dev-portfolio-iota.vercel.app/"><b>✨ View Portfolio</b></a> • 
+    <a href="https://github.com/Adityamkumar"><b>🔗 Github</b></a> • 
+    <a href="#-setup-instructions"><b>🚀 Setup</b></a>
   </p>
 </div>
 
 ---
 
-## 💎 The Premium Experience
+## ✨ Features
 
-**Shortify** is designed for those who value speed and aesthetics. Every detail—from the glassmorphic sidebar to the spring-physics animations—is crafted to provide an elite user experience.
-
-- **⚡ Instant Response**: Redirection logic optimized with Redis caching for near-zero latency.
-- **🏷️ Branded Links**: Stand out with custom aliases that speak your brand's language.
-- **📊 Deep Analytics**: Real-time click tracking with visual "🔥 Popular" highlights for viral links.
-- **🎨 Modern Dark UI**: A sophisticated design system using Tailwind 4's latest capabilities.
-- **🛡️ Secure History**: Local persistence ensures your history stays private yet always accessible.
-
----
-
-## 🧠 High-Performance Caching Architecture
-
-Shortify uses a multi-layered caching strategy. By offloading 99% of redirection traffic to memory, we protect the primary database and provide a seamless experience to the end user.
-
-```mermaid
-graph TD
-    A[User Link Request] --> B{Redis Cache Lookup}
-
-    %% Fast Path
-    B -- "⚡ Fast Path (Cache Hit)" --> C[Direct Redirect]
-    C -. "Fire & Forget" .-> D((Async Stats Sync))
-
-    %% Slow Path
-    B -- "🐢 Slow Path (Cache Miss)" --> E[(MongoDB Persistence)]
-    E --> F[Populate Redis Cache]
-    F --> C
-    
-    style B fill:#1e293b,stroke:#38bdf8,stroke-width:2px;
-    style C fill:#059669,stroke:#10b981,stroke-width:2px,color:#fff;
-    style E fill:#dc2626,stroke:#ef4444,stroke-width:2px,color:#fff;
-    style D fill:#9333ea,stroke:#a855f7,stroke-width:2px,color:#fff,stroke-dasharray: 5 5;
-```
-
-### Why Redis?
-- **Speed**: Memory-level access reduces TTFB (Time to First Byte) significantly.
-- **Efficiency**: Reduces server load by avoiding redundant expensive database lookups.
-- **Scalability**: Handles thousands of concurrent redirects without sweating.
+- ⚡ **Lightning Fast**: Redirects optimized with **Upstash Redis** caching for near-zero latency.
+- 🏷️ **Custom Aliases**: Create branded, memorable links instead of random strings.
+- 📊 **Real-time Analytics**: Detailed tracking of visit counts and link performance.
+- 🛡️ **Intelligent Rate Limiting**: Built-in protection to prevent API abuse.
+- 🐳 **Docker Support**: Fully containerized for seamless deployment.
+- 🎨 **Premium UI**: Modern dark-themed interface built with **React 19** and **Tailwind CSS 4.0**.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | React 19 + TypeScript | Type-safe, high-performance UI components. |
-| **Styling** | Tailwind CSS 4.0 | Next-gen utility-first CSS for elite aesthetics. |
-| **Animations** | Framer Motion | Fluid "sproing" animations and layout transitions. |
-| **Backend** | Express + Node.js | Fast, scalable asynchronous API server. |
-| **Database** | MongoDB | Robust storage for link metadata and persistent stats. |
-| **Caching** | Redis | High-speed, in-memory redirection engine. |
+| **Frontend** | React 19 + TypeScript | Type-safe, interactive user interface. |
+| **Backend** | Node.js + Express | Scalable asynchronous API engine. |
+| **Database** | MongoDB + Mongoose | Persistent storage for URL metadata. |
+| **Caching** | Upstash Redis | High-speed global cache for redirections. |
+| **Styling** | Tailwind CSS 4.0 | Next-gen utility-first CSS styling. |
+| **Container** | Docker | Consistent environment and deployment. |
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Setup Instructions
 
-1. **Clone the Repo**
-   ```bash
-   git clone https://github.com/Adityamkumar/Url_Shortner.git
-   ```
+### 1️⃣ Local Development Setup
 
-2. **Frontend Configuration**
-   ```bash
-   cd frontend
-   npm install
-   # Create .env and set VITE_API_URL=http://localhost:8000/api/v1
-   npm run dev
-   ```
+To run this project locally, clone the repository and install dependencies for both the frontend and backend.
 
-3. **Backend Configuration**
-   ```bash
-   cd ../backend
-   npm install
-   # Create .env and set MONGO_URI, REDIS_URL, and PORT
-   npm run dev
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/Adityamkumar/Url_Shortner.git
+cd Url_Shortner
+
+# Setup Backend
+cd backend
+npm install
+npm run dev
+
+# Setup Frontend (in a new terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+### 2️⃣ Environment Variables
+
+Create a `.env` file in the `backend/` directory and configure the following:
+
+```env
+PORT=6000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+MONGODB_URI=your_mongodb_connection_string
+UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
+REDIS_TTL=3600
+```
+
+---
+
+## 🐳 Docker Support
+
+### Build Image Locally
+If you want to build the backend image yourself:
+```bash
+cd backend
+docker build -t my-url-shortner .
+```
+
+### Run Container Locally
+Run the container using your local `.env` file:
+```bash
+docker run -p 6000:6000 --env-file .env my-url-shortner
+```
+
+### Pull from Docker Hub
+You can pull and run the official pre-built image directly:
+```bash
+# Pull the latest image
+docker pull adityakumar91/url-shortner:latest
+
+# Run the container
+docker run -p 6000:6000 --env-file .env adityakumar91/url-shortner:latest
+```
+
+---
+
+## 🌐 API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/shortId` | Generate a shortened URL (supports custom aliases) |
+| `GET` | `/api/v1/analytics/:shortId` | Fetch visit count and analytics |
+| `GET` | `/:shortId` | Redirect to the original long URL |
 
 ---
 
